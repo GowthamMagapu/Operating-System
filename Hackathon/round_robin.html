@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Round Robin Scheduling</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        label, input {
+            font-size: 16px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        button {
+            grid-column: span 2;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        ul li {
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .gantt-chart {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .gantt-bar {
+            background-color: #28a745;
+            color: white;
+            padding: 8px;
+            margin: 2px;
+            border-radius: 4px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Round Robin Scheduling</h1>
+
+    <form id="processForm">
+        <label for="quantum">Time Quantum</label>
+        <input type="number" id="quantum" required>
+
+        <label for="processId">Process ID</label>
+        <input type="text" id="processId" required>
+
+        <label for="arrivalTime">Arrival Time</label>
+        <input type="number" id="arrivalTime" required>
+
+        <label for="burstTime">Burst Time</label>
+        <input type="number" id="burstTime" required>
+
+        <button type="submit">Add Process</button>
+    </form>
+
+    <ul id="processList"></ul>
+
+    <button id="simulateBtn">Simulate Round Robin Scheduling</button>
+
+    <div class="results" id="results"></div>
+    <div class="gantt-chart" id="ganttChart"></div>
+    <div class="time-labels" id="timeLabels"></div>
+</div>
+
+<script>
+    const processForm = document.getElementById('processForm');
+    const processList = document.getElementById('processList');
+    const results = document.getElementById('results');
+    const simulateBtn = document.getElementById('simulateBtn');
+    const ganttChart = document.getElementById('ganttChart');
+    const timeLabels = document.getElementById('timeLabels');
+
+    let processes = [];
+    let quantum;
+
+    // Get quantum value only once when adding the first process
+    processForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        if (!quantum) {
+            quantum = parseInt(document.getElementById('quantum').value); // Get quantum value
+        }
+
+        const processId = document.getElementById('processId').value;
+        const arrivalTime = parseInt(document.getElementById('arrivalTime').value);
+        const burstTime = parseInt(document.getElementById('burstTime').value);
+
+        processes.push({ processId, arrivalTime, burstTime });
+
+        const listItem = document.createElement('li');
+        listItem.textContent = `P${processId} (Arrival: ${arrivalTime}, Burst: ${burstTime})`;
+        processList.appendChild(listItem);
+
+        processForm.reset();
+        document.getElementById('quantum').value = quantum; // Reset quantum input field but keep value
+    });
+
+    simulateBtn.addEventListener('click', () => {
+        if (processes.length === 0) {
+            results.textContent = 'No processes to schedule.';
+            return;
+        }
+
+        const result = simulateRoundRobin(processes, quantum);
+        results.innerHTML = result;
+    });
+
+    function simulateRoundRobin(processes, quantum) {
+        let currentTime = 0;
+        let queue = [];
+        let ganttBars = [];
+        let n = processes.length;
+        let remainingBurstTime = processes.map(p => p.burstTime);
+        let completionTime = new Array(n).fill(0);
+        let waitingTime = new Array(n).fill(0);
+        let turnaroundTime = new Array(n).fill(0);
+        let completedProcesses = 0;
+
+        // Sort processes based on arrival time
+        processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
+
+        while (completedProcesses < n) {
+            // Add arrived processes to the queue
+            for (let i = 0; i < n; i++) {
+                if (processes[i].arrivalTime <= currentTime && remainingBurstTime[i] > 0 && !queue.includes(i)) {
+                    queue.push(i);
+                }
+            }
+
+            if (queue.length > 0) {
+                // Get the next process in the queue
+                const index = queue.shift(); // FIFO for Round Robin
+
+                // Calculate execution time
+                const execTime = Math.min(quantum, remainingBurstTime[index]);
+
+                ganttBars.push({ id: processes[index].processId, start: currentTime, duration: execTime });
+                currentTime += execTime;
+                remainingBurstTime[index] -= execTime;
+
+                // If the process is completed
+                if (remainingBurstTime[index] === 0) {
+                    completionTime[index] = currentTime;
+                    turnaroundTime[index] = completionTime[index] - processes[index].arrivalTime;
+                    waitingTime[index] = turnaroundTime[index] - processes[index].burstTime;
+                    completedProcesses++;
+                }
+
+                // Add the process back to the queue if not finished
+                if (remainingBurstTime[index] > 0) {
+                    queue.push(index);
+                }
+            } else {
+                // If no processes are in the queue, move time forward
+                currentTime++;
+            }
+        }
+
+        // Display the results
+        let resultHtml = `
+            <h2>Scheduling Results:</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Process ID</th>
+                        <th>Arrival Time</th>
+                        <th>Burst Time</th>
+                        <th>Completion Time</th>
+                        <th>Turnaround Time</th>
+                        <th>Waiting Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        for (let i = 0; i < n; i++) {
+            resultHtml += `
+                <tr>
+                    <td>${processes[i].processId}</td>
+                    <td>${processes[i].arrivalTime}</td>
+                    <td>${processes[i].burstTime}</td>
+                    <td>${completionTime[i]}</td>
+                    <td>${turnaroundTime[i]}</td>
+                    <td>${waitingTime[i]}</td>
+                </tr>
+            `;
+        }
+
+        resultHtml += `
+                </tbody>
+            </table>
+        `;
+
+        // Create Gantt Chart
+        ganttChart.innerHTML = '';
+        timeLabels.innerHTML = ''; // Clear previous time labels
+        let lastEndTime = 0;
+
+        ganttBars.forEach(bar => {
+            const ganttBar = document.createElement('div');
+            ganttBar.className = 'gantt-bar';
+            ganttBar.style.width = `${bar.duration * 20}px`; // Scale the bar length
+            ganttBar.textContent = bar.id;
+            ganttChart.appendChild(ganttBar);
+
+            // Create time labels
+            const label = document.createElement('span');
+            label.textContent = lastEndTime;
+            timeLabels.appendChild(label);
+            lastEndTime += bar.duration; // Update end time for next label
+        });
+
+        // Append final time label
+        const endLabel = document.createElement('span');
+        endLabel.textContent = lastEndTime;
+        timeLabels.appendChild(endLabel);
+
+        return resultHtml;
+    }
+</script>
+
+</body>
+</html>

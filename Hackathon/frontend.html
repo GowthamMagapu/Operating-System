@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCFS Scheduler</title>
+    <style>
+        /* Styling the page */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        label, input {
+            font-size: 16px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        button {
+            grid-column: span 2;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        ul li {
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .gantt-chart {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .gantt-chart div {
+            background-color: #007bff;
+            color: white;
+            padding: 8px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>FCFS Scheduler</h1>
+
+    <form id="processForm">
+        <label for="processId">Process ID</label>
+        <input type="text" id="processId" required>
+
+        <label for="arrivalTime">Arrival Time</label>
+        <input type="number" id="arrivalTime" required>
+
+        <label for="burstTime">Burst Time</label>
+        <input type="number" id="burstTime" required>
+
+        <button type="submit">Add Process</button>
+    </form>
+
+    <ul id="processList"></ul>
+
+    <button id="simulateBtn">Simulate FCFS</button>
+
+    <div class="results" id="results"></div>
+</div>
+
+<script>
+    const processForm = document.getElementById('processForm');
+    const processList = document.getElementById('processList');
+    const results = document.getElementById('results');
+    const simulateBtn = document.getElementById('simulateBtn');
+
+    let processes = [];
+
+    processForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const processId = document.getElementById('processId').value;
+        const arrivalTime = parseInt(document.getElementById('arrivalTime').value);
+        const burstTime = parseInt(document.getElementById('burstTime').value);
+
+        processes.push({ processId, arrivalTime, burstTime });
+
+        const listItem = document.createElement('li');
+        listItem.textContent = `P${processId} (Arrival: ${arrivalTime}, Burst: ${burstTime})`;
+        processList.appendChild(listItem);
+
+        processForm.reset();
+    });
+
+    simulateBtn.addEventListener('click', () => {
+        if (processes.length === 0) {
+            results.textContent = 'No processes to schedule.';
+            return;
+        }
+
+        const result = simulateFCFS(processes);
+        results.innerHTML = result;
+    });
+
+    function simulateFCFS(processes) {
+        let currentTime = 0;
+        let ganttChartHtml = '<div class="gantt-chart">';
+        let ganttChartText = 'Gantt Chart: | ';
+        let tableData = `
+            <h2>Scheduling Results:</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Process ID</th>
+                        <th>Arrival Time</th>
+                        <th>Burst Time</th>
+                        <th>Completion Time</th>
+                        <th>Turnaround Time</th>
+                        <th>Waiting Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
+
+        processes.forEach(process => {
+            if (currentTime < process.arrivalTime) {
+                currentTime = process.arrivalTime;
+            }
+            let startTime = currentTime;
+            let completionTime = currentTime + process.burstTime;
+            let turnaroundTime = completionTime - process.arrivalTime;
+            let waitingTime = turnaroundTime - process.burstTime;
+
+            // Graphical Gantt chart (each block represents the burst time)
+            ganttChartHtml += `<div style="width:${process.burstTime * 40}px">P${process.processId}</div>`;
+            
+            // Gantt chart as text
+            ganttChartText += `P${process.processId} | `;
+            currentTime = completionTime;
+
+            // Add to table data
+            tableData += `
+                <tr>
+                    <td>${process.processId}</td>
+                    <td>${process.arrivalTime}</td>
+                    <td>${process.burstTime}</td>
+                    <td>${completionTime}</td>
+                    <td>${turnaroundTime}</td>
+                    <td>${waitingTime}</td>
+                </tr>
+            `;
+        });
+
+        ganttChartHtml += '</div>';
+        ganttChartText += '<br>';
+
+        tableData += '</tbody></table>';
+
+        return ganttChartHtml + '<h3>' + ganttChartText + '</h3>' + tableData;
+    }
+</script>
+
+</body>
+</html>

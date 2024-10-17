@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduling Simulator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .algorithm-btn {
+            display: inline-block;
+            padding: 15px 25px;
+            margin: 10px;
+            font-size: 18px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .algorithm-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .description {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CPU Scheduling Algorithm Simulator</h1>
+    <p class="description">Select a scheduling algorithm to simulate and visualize the performance.</p>
+
+    <a href="frontend.html" class="algorithm-btn">FCFS</a>
+    <a href="sjf.html" class="algorithm-btn">SJF</a>
+    <a href="round_robin.html" class="algorithm-btn">Round Robin</a>
+    <a href="priority.html" class="algorithm-btn">Priority</a>
+
+</div>
+
+</body>
+</html>
